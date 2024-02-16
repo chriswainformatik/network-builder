@@ -11,29 +11,67 @@
 
         <link rel="stylesheet" href="plugins/bootstrap-5.3.2-dist/css/bootstrap.min.css">
         <script src="plugins/bootstrap-5.3.2-dist/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="plugins/bootstrap-icons-1.11.3/font/bootstrap-icons.min.css">
+
+        <script src="plugins/anim-event/anim-event.min.js"></script>
+        <script src="plugins/anseki-leader-line-6c26a9d/leader-line.min.js"></script>
 
         <link rel="stylesheet" href="style/additional-styles.css">
 
         <title>Network Builder</title>
     </head>
+
     <body>
-        <div id="wrapper">
-            <div id="header" class="bg-warning">
-                <h1>Network Builder</h1>
+        <div id="wrapper" class="d-flex flex-column vh-100">
+            <div id="header" class="border-bottom col px-4">
+                <div class="d-flex flex-row align-items-center">
+                    <div id="logo">
+                        <img src="resources/networkbuilder.png" width="40" height="40" />
+                    </div>
+                    <div>
+                        <h1 id="app-title">Network Builder</h1>
+                    </div>
+                    
+                </div>
+                <div class="row">
+                    <div id="menu" class="col-6 d-flex flex-row align-items-center">
+                        <button class="menu-item btn btn-light">
+                            New
+                        </button>
+                        <button class="menu-item btn btn-light">
+                            Open
+                        </button>
+                        <button class="menu-item btn btn-light">
+                            Save
+                        </button>
+                    </div>
+                    <div id="mode-switcher" class="col-6">
+                        <input type="radio" class="btn-check" name="options" id="option1" autocomplete="off" checked>
+                        <label class="btn btn-primary" for="option1">
+                            <span class="bi bi-pencil-fill"></span>
+                            Bearbeiten
+                        </label>
+    
+                        <input type="radio" class="btn-check" name="options" id="option2" autocomplete="off">
+                        <label class="btn btn-success" for="option2">
+                            <span class="bi bi-play-fill"></span>
+                            Aktion
+                        </label>
+                    </div>
+                </div>
             </div>
-            <div id="working-area" class="row">
-                <div id="toolbar" class="bg-primary">
-                    Toolbar
+            <div id="working-area" class="row flex-grow-1">
+                <div id="toolbar" class="border-end col">
+                    <div id="toolbar-header">
+                    </div>
+                    <div id="tools-list" class="row d-flex flex-column justify-content-start align-items-start"></div>
                 </div>
-                <div id="canvas" class="bg-secondary col">
-                    Canvas
-                </div>
+                <div id="canvas" class="col"></div>
             </div>
             
         </div>
         
-        <script>
-            
-        </script>
+        <script src="scripts/main.js"></script>
+        <script src="scripts/event-listeners.js"></script>
     </body>
 </html>
