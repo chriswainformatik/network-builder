@@ -1,12 +1,31 @@
 // define constants
 const tools = ['cable', 'laptop']
+const spriteSize = 100
 var mode = "edit"
 
+// save all the cable instances
 var cables = []
+// if cable is being placed
+var cablePlacement = false
+// if a cable has a lose end at the moment
+var loseCable = false
+// start element of the lose cable
+var loseCableStart = null
 
+// if a network component is being picked and ready to be placed
 var networkComponentPicked = false
+// placeholder for component sprite being moved around
 var spriteDiv = null
+// placeholder for cable being moved around
 var newCable = null
+
+// placeholder for data object of component that is to be created
+var newComponent = null
+// save all the component instances
+var components = []
+
+// save draggables for cable update, because cables are created after the components
+var draggables = []
 
 const canvas = document.getElementById("canvas")
 
@@ -46,45 +65,65 @@ function loadToolbar() {
  * @param {*} y initial y-coordinate of the pointer
  */
 function pickNetworkComponent(type, x, y) {
+    var component = (() => {
+        if (type == "laptop") {
+            return new Laptop()
+        } else if (type == "cable") {
+            return new Cable()
+        }
+        return new NetworkComponent()
+    })()
+    newComponent = component
     spriteDiv = document.createElement("div")
+    spriteDiv.id = component.getMACAdr()
     spriteDiv.classList.add("network-component-sprite")
     spriteDiv.classList.add("picked-network-component")
     spriteDiv.style.position = "absolute"
     spriteDiv.style.left = x + "px"
     spriteDiv.style.top = y + "px"
-    spriteDiv.style.height = "100px"
-    spriteDiv.style.width = "100px"
-    spriteDiv.style.pointerEvents = "none"
+    spriteDiv.style.height = 0
+    spriteDiv.style.width = 0
+    //spriteDiv.style.pointerEvents = "none"
     document.addEventListener('mousemove', followMouse)
-    document.addEventListener('mousemove', AnimEvent.add(function() {
-        try {
-            newCable.position()
-        } catch (error) {
-            // newCable doesn't exist
-        }
-    }), false)
-    var img = document.createElement("img")
-    img.src = "resources/" + type + ".png"
-    img.height = 100
-    img.width = 100
-    img.style.pointerEvents = "none"
-    spriteDiv.append(img)
+    
+    
     if (type == "cable") {
+        // place cable
+        cablePlacement = true
         var description = document.createElement("div")
         description.classList.add("cable-description")
         description.style.position = "absolute"
         description.style.left = 0
+        description.style.top = 20 + "px"
         description.innerHTML = "1. Gerät wählen"
         spriteDiv.append(description)
-        Array.from(document.getElementsByClassName("network-component-sprite")).forEach((component) => {
-            component.style.pointerEvents = "all"
-            component.addEventListener('click', attachCable)
-        })
+        document.addEventListener('mousemove', AnimEvent.add(function() {
+            try {
+                newCable.position()
+            } catch (error) {
+                // newCable doesn't exist
+            }
+        }), false)
+    } else {
+        // place other component
+        networkComponentPicked = true
+
+        spriteDiv.style.height = spriteSize + "px"
+        spriteDiv.style.width = spriteSize + "px"
+
+        var img = document.createElement("img")
+        img.src = "resources/" + type + ".png"
+        img.height = spriteSize
+        img.width = spriteSize
+        img.style.pointerEvents = "none"
+        spriteDiv.append(img)
+
+        newComponent.assignDOMObject(spriteDiv)
+
+        spriteDiv.addEventListener('click', attachCable)
     }
 
     document.getElementById("canvas").appendChild(spriteDiv)
-
-    networkComponentPicked = true
 }
 
 /**
@@ -97,32 +136,80 @@ function followMouse(event) {
     spriteDiv.style.top = (event.clientY - canvas.offsetTop) + "px"
 }
 
-/**
- * Event handler for cable attachement.
- * @param {*} event 
- */
 function attachCable(event) {
-    event.stopPropagation()
-    var cableDiv = document.getElementsByClassName("cable-description")[0]
-    cableDiv.innerHTML = "2. Gerät wählen"
-    newCable = new LeaderLine(
-        LeaderLine.pointAnchor({
-            element: event.target,
-            x: 50,
-            y: 50,
-        }),
-        LeaderLine.pointAnchor({
-            element: cableDiv,
-            x: 10,
-            y: -100,
-        }),
-        {
-            color: 'black',
-            size: 1,
-            startPlug: 'behind',
-            endPlug: 'behind'
+    if (cablePlacement) {
+        event.stopPropagation()
+        if (loseCable) {
+            // attach end
+            document.removeEventListener('mousemove', followMouse)
+            newCable.remove()
+            newCable = null
+            var cableEnd = document.getElementById(spriteDiv.id)
+            var c = new LeaderLine(
+                LeaderLine.pointAnchor({
+                    element: loseCableStart,
+                    x: spriteSize/2,
+                    y: spriteSize/2,
+                }),
+                LeaderLine.pointAnchor({
+                    element: cableEnd,
+                    x: 0,
+                    y: 0,
+                }),
+                {
+                    color: 'black',
+                    size: 1,
+                    startPlug: 'behind',
+                    endPlug: 'behind'
+                }
+            )
+
+            // assign onMove event to cable start and end
+            for (var d in draggables) {
+                if (d.id == loseCableStart.id) {
+                    d.draggableObj.onMove = function(newPos) {
+                        c.position()
+                    }
+                }
+                if (d.id == cableEnd.id) {
+                    d.draggableObj.onMove = function(newPos) {
+                        c.position()
+                    }
+                }
+            }
+
+            document.getElementsByClassName("cable-description")[0].remove()
+            loseCableStart = null
+            newComponent.assignDOMObject(c)
+            cables.push(newComponent)
+            cablePlacement = false
+            
+        } else {
+            // attach start
+            var cableDiv = document.getElementsByClassName("cable-description")[0]
+            cableDiv.innerHTML = "2. Gerät wählen"
+            newCable = new LeaderLine(
+                LeaderLine.pointAnchor({
+                    element: event.target,
+                    x: spriteSize/2,
+                    y: spriteSize/2,
+                }),
+                LeaderLine.pointAnchor({
+                    element: cableDiv,
+                    x: 0,
+                    y: 0,
+                }),
+                {
+                    color: 'black',
+                    size: 1,
+                    startPlug: 'behind',
+                    endPlug: 'behind'
+                }
+            )
+            loseCableStart = event.target
         }
-    )
+        loseCable = !loseCable
+    }
 }
 
 /**
@@ -130,8 +217,15 @@ function attachCable(event) {
  * or discards the pick-and-place-action if the pointer is outside the canvas.
  */
 function placeNetworkComponent() {
+    var newID = newComponent.getDOMObject().id
+    draggables.push({
+        id : newID,
+        draggableObj : new PlainDraggable(newComponent.getDOMObject())
+    })
     document.removeEventListener('mousemove', followMouse)
     networkComponentPicked = false
+    components.push(newComponent)
+    newComponent = null
 }
 
 /**
