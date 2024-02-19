@@ -263,6 +263,8 @@ function clickOnComponent(event) {
         selectedComponent = event.target
         event.target.classList.add('selected-component')
         event.stopPropagation()
+        setSidebarProperties(getComponent(event.target.id))
+        showSidebar()
     }
 }
 
@@ -313,4 +315,20 @@ function cancelComponentPlacement() {
     } catch (e) {}
     cablePlacement = false
     loseCable = false
+}
+
+function showSidebar() {
+    var sidebar = document.getElementById('sidebar-properties')
+    sidebar.classList.remove('sidebar-hide')
+    sidebar.classList.add('sidebar-show')
+}
+
+function hideSidebar() {
+    var sidebar = document.getElementById('sidebar-properties')
+    sidebar.classList.add('sidebar-hide')
+    sidebar.classList.remove('sidebar-show')
+}
+
+function setSidebarProperties(component) {
+    document.getElementById('sidebar-properties-mac').innerHTML = component.getMACAdr()
 }

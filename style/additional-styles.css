@@ -43,3 +43,24 @@
 .selected-component {
     filter: drop-shadow(0px 0px 20px #af6f6f);
 }
+
+
+.sidebar {
+    width: 480px;
+    position: fixed;
+    right: -480px;
+    top: 0;
+    box-shadow: -1px 0 10px #eeeeee;
+    overflow-y: scroll;
+    z-index: 10;
+}
+
+.sidebar-hide {
+    transform: translate(480px, 0);
+    transition: all ease-in 300ms;
+}
+
+.sidebar-show {
+    transform: translate(-480px, 0);
+    transition: all ease-in 300ms;
+}

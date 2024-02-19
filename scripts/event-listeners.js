@@ -36,4 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
     })
 
+    document.getElementById('btn-sidebar-settings-close').addEventListener('click', () => hideSidebar())
+
 })
