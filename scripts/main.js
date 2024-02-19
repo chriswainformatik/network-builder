@@ -19,10 +19,28 @@ var spriteDiv = null
 // placeholder for cable being moved around
 var newCable = null
 
+// placeholder for selected component
+var selectedComponent = null
+
 // placeholder for data object of component that is to be created
 var newComponent = null
 // save all the component instances
 var components = []
+
+/**
+ * Returns the component object with the given id or null if there is no such component.
+ * 
+ * @param {*} id 
+ * @returns a NetworkComponent object or null
+ */
+function getComponent(id) {
+    for (var i = 0; i < components.length; i++) {
+        if (components[i].macadr == id) {
+            return components[i]
+        }
+    }
+    return null
+}
 
 // save draggables for cable update, because cables are created after the components
 var draggables = []
@@ -120,7 +138,7 @@ function pickNetworkComponent(type, x, y) {
 
         newComponent.assignDOMObject(spriteDiv)
 
-        spriteDiv.addEventListener('click', attachCable)
+        spriteDiv.addEventListener('click', clickOnComponent)
     }
 
     document.getElementById("canvas").appendChild(spriteDiv)
@@ -136,15 +154,36 @@ function followMouse(event) {
     spriteDiv.style.top = (event.clientY - canvas.offsetTop) + "px"
 }
 
-function attachCable(event) {
+/**
+ * Handles the click on a component.
+ * If in cable placement mode, a cable gets attached.
+ * If in "normal" mode, component gets selected.
+ * 
+ * @param {*} event 
+ */
+function clickOnComponent(event) {
+    // assert you clicked on a Device
+    // TODO: remove this later?
+    if (getComponent(event.target.id) == null) {
+        //console.error("clicked on a component that is not a clickable component (yet)")
+        return
+    }
     if (cablePlacement) {
+        if (getComponent(event.target.id).isConnected()) {
+            console.log("maximum of connections reached")
+            return
+        }
         event.stopPropagation()
         if (loseCable) {
+            if (event.target.id == loseCableStart.id) {
+                console.log("can't connect to yourself")
+                return
+            }
             // attach end
             document.removeEventListener('mousemove', followMouse)
             newCable.remove()
             newCable = null
-            var cableEnd = document.getElementById(spriteDiv.id)
+            var cableEnd = document.getElementById(event.target.id)
             var c = new LeaderLine(
                 LeaderLine.pointAnchor({
                     element: loseCableStart,
@@ -153,8 +192,8 @@ function attachCable(event) {
                 }),
                 LeaderLine.pointAnchor({
                     element: cableEnd,
-                    x: 0,
-                    y: 0,
+                    x: spriteSize/2,
+                    y: spriteSize/2,
                 }),
                 {
                     color: 'black',
@@ -164,25 +203,34 @@ function attachCable(event) {
                 }
             )
 
-            // assign onMove event to cable start and end
-            for (var d in draggables) {
-                if (d.id == loseCableStart.id) {
-                    d.draggableObj.onMove = function(newPos) {
-                        c.position()
-                    }
-                }
-                if (d.id == cableEnd.id) {
-                    d.draggableObj.onMove = function(newPos) {
-                        c.position()
-                    }
-                }
-            }
+            getComponent(loseCableStart.id).connect(event.target.id)
+            getComponent(event.target.id).connect(loseCableStart.id)
 
             document.getElementsByClassName("cable-description")[0].remove()
-            loseCableStart = null
+            
             newComponent.assignDOMObject(c)
             cables.push(newComponent)
             cablePlacement = false
+
+             // assign onMove event to cable start and end
+             for (var d in draggables) {
+                if (draggables[d].id == loseCableStart.id) {
+                    var onMoveOld = draggables[d].draggableObj.onMove
+                    draggables[d].draggableObj.setOptions({onMove: function() {
+                        onMoveOld()
+                        c.position()
+                    }})
+                }
+                if (draggables[d].id == cableEnd.id) {
+                    var onMoveOld2 = draggables[d].draggableObj.onMove
+                    draggables[d].draggableObj.setOptions({onMove: function() {
+                        onMoveOld2()
+                        c.position()
+                    }})
+                }
+            }
+
+            loseCableStart = null
             
         } else {
             // attach start
@@ -209,7 +257,28 @@ function attachCable(event) {
             loseCableStart = event.target
         }
         loseCable = !loseCable
+    } else if (!networkComponentPicked) {
+        // unselect all other components (should be only one, but still...)
+        deselectComponent()
+        selectedComponent = event.target
+        event.target.classList.add('selected-component')
+        event.stopPropagation()
     }
+}
+
+function deselectComponent() {
+    selectedComponent = null
+    Array.from(document.getElementsByClassName('selected-component')).forEach((element) => {
+        element.classList.remove('selected-component')
+    })
+}
+
+/**
+ * Deletes the currently selected component.
+ */
+function deleteComponent() {
+    selectedComponent.remove()
+    selectedComponent = null
 }
 
 /**
@@ -220,9 +289,12 @@ function placeNetworkComponent() {
     var newID = newComponent.getDOMObject().id
     draggables.push({
         id : newID,
-        draggableObj : new PlainDraggable(newComponent.getDOMObject())
+        draggableObj : new PlainDraggable(newComponent.getDOMObject(), {
+            onMove: function() { } // do nothing here because future onMove handlers are "stacked on top"
+        })
     })
     document.removeEventListener('mousemove', followMouse)
+    newComponent.getDOMObject().classList.remove("picked-network-component")
     networkComponentPicked = false
     components.push(newComponent)
     newComponent = null
@@ -231,7 +303,14 @@ function placeNetworkComponent() {
 /**
  * Stops the placement of a network component.
  */
-function discardComponentPlacement() {
-    document.getElementsByClassName('picked-network-component')[0].remove()
+function cancelComponentPlacement() {
+    try {
+        document.getElementsByClassName('picked-network-component')[0].remove()
+    } catch (e) {}
     networkComponentPicked = false
+    try {
+        newCable.remove()
+    } catch (e) {}
+    cablePlacement = false
+    loseCable = false
 }

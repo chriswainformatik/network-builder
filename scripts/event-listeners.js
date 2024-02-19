@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("canvas").addEventListener('click', () => {
         if (networkComponentPicked) {
             placeNetworkComponent()
+        } else {
+            deselectComponent()
         }
     })
 
@@ -10,9 +12,28 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', (e) => {
             if (mode == "edit") {
                 e.stopPropagation()
-                pickNetworkComponent(e.target.dataset.type, e.clientX, e.clientY)
+                cancelComponentPlacement()
+                pickNetworkComponent(e.target.dataset.type, (e.clientX - canvas.offsetLeft), (e.clientY - canvas.offsetTop))
             }
         })
+    })
+
+    document.addEventListener('contextmenu', (e) => {
+        if (networkComponentPicked || cablePlacement) {
+            e.preventDefault()
+            cancelComponentPlacement()
+        }
+    })
+
+    document.addEventListener('keyup', (e) => {
+        if (e.key == "Bacspace") {
+            if (networkComponentPicked || cablePlacement) {
+                cancelComponentPlacement()
+            } else {
+                deleteComponent()
+            }
+        }
+        
     })
 
 })

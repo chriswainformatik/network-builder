@@ -40,3 +40,6 @@
     position: relative;
 }
 
+.selected-component {
+    filter: drop-shadow(0px 0px 20px #af6f6f);
+}
